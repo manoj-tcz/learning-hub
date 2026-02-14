@@ -9,6 +9,7 @@ on:
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/learnhub
   IMAGE_TAG: ${{ github.sha }}
+  EC2_USER: ubuntu
 
 jobs:
   # ---- Job 1: Build & Push Docker Image ----
@@ -59,42 +60,43 @@ jobs:
 
       - name: Verify SSH connection
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful' && kubectl get nodes"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful' && kubectl get nodes"
 
       - name: Copy k8s manifests to EC2
         run: |
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r k8s/ ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USERNAME }}/learnhub-deploy/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ env.EC2_USER }}/learnhub-deploy"
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r k8s/ ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ env.EC2_USER }}/learnhub-deploy/
 
       - name: Deploy to Kubernetes
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'DEPLOY_SCRIPT'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "
             set -e
 
-            DEPLOY_DIR="/home/${{ secrets.EC2_USERNAME }}/learnhub-deploy"
-            DOCKER_IMAGE="${{ env.DOCKER_IMAGE }}"
-            IMAGE_TAG="${{ env.IMAGE_TAG }}"
+            DEPLOY_DIR=/home/${{ env.EC2_USER }}/learnhub-deploy
+            DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
+            IMAGE_TAG=${{ env.IMAGE_TAG }}
 
-            echo "=== Updating image in deployment manifest ==="
-            sed -i "s|DOCKER_USERNAME/learnhub:latest|${DOCKER_IMAGE}:${IMAGE_TAG}|g" ${DEPLOY_DIR}/k8s/deployment.yaml
+            echo '=== Updating image in deployment manifest ==='
+            sed -i \"s|DOCKER_USERNAME/learnhub:latest|\${DOCKER_IMAGE}:\${IMAGE_TAG}|g\" \${DEPLOY_DIR}/k8s/deployment.yaml
 
-            echo "=== Applying Kubernetes manifests ==="
-            kubectl apply -f ${DEPLOY_DIR}/k8s/namespace.yaml
-            kubectl apply -f ${DEPLOY_DIR}/k8s/deployment.yaml
-            kubectl apply -f ${DEPLOY_DIR}/k8s/service.yaml
-            kubectl apply -f ${DEPLOY_DIR}/k8s/ingress.yaml
+            echo '=== Applying Kubernetes manifests ==='
+            kubectl apply -f \${DEPLOY_DIR}/k8s/namespace.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/deployment.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/service.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/ingress.yaml
 
-            echo "=== Waiting for rollout to complete ==="
+            echo '=== Waiting for rollout to complete ==='
             kubectl rollout status deployment/learnhub-app -n learnhub --timeout=120s
 
-            echo "=== Deployment Status ==="
+            echo '=== Deployment Status ==='
             kubectl get pods -n learnhub
             kubectl get svc -n learnhub
 
-            echo "=== Cleanup ==="
-            rm -rf ${DEPLOY_DIR}
+            echo '=== Cleanup ==='
+            rm -rf \${DEPLOY_DIR}
 
-            echo "=== Deployment complete! ==="
-          DEPLOY_SCRIPT
+            echo '=== Deployment complete! ==='
+          "
 
       - name: Cleanup SSH Key
         if: always()
