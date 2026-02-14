@@ -12,6 +12,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure public folder exists
+RUN mkdir -p /app/public
+
 RUN npm run build
 
 # ---- Stage 3: Production runner ----
