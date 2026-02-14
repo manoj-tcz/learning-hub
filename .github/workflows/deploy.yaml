@@ -83,10 +83,16 @@ jobs:
             kubectl apply -f \${DEPLOY_DIR}/k8s/namespace.yaml
             kubectl apply -f \${DEPLOY_DIR}/k8s/deployment.yaml
             kubectl apply -f \${DEPLOY_DIR}/k8s/service.yaml
-            kubectl apply -f \${DEPLOY_DIR}/k8s/ingress.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/gateway-configmap.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/gateway-deployment.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/gateway-service.yaml
+
+            echo '=== Restarting gateway to pick up config changes ==='
+            kubectl rollout restart deployment/gateway -n learnhub
 
             echo '=== Waiting for rollout to complete ==='
             kubectl rollout status deployment/learnhub-app -n learnhub --timeout=120s
+            kubectl rollout status deployment/gateway -n learnhub --timeout=120s
 
             echo '=== Deployment Status ==='
             kubectl get pods -n learnhub
