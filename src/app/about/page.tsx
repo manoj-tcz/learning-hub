@@ -18,7 +18,7 @@ export default function AboutPage() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            About <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">LearnHub Manoj</span>
+            About <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">LearnHub Manoj Yadav</span>
           </h1>
           <p className="text-lg text-purple-200 max-w-2xl mx-auto leading-relaxed">
             We&apos;re on a mission to make quality education accessible to everyone, everywhere.
